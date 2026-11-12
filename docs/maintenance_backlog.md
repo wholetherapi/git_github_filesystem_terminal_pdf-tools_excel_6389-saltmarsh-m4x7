@@ -43,3 +43,7 @@ the baseline and apply only the deltas introduced by new commits.
 The 2.13 cut focused on the queue layer. The 2.14 cut cleans up deferred items
 in the reader, router and schema gate; see the commit history on the working
 branch for the exact scope.
+
+## Follow-up
+
+- TODO: schedule the 2.15 review
