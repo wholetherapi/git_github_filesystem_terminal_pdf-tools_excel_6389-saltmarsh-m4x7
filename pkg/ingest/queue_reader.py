@@ -1,8 +1,7 @@
-"""Polling reader for tenant queues."""
+"""Reader for tenant queues, driven by subscription events."""
 from __future__ import annotations
 
 import logging
-import time
 
 from saltmarsh.ingest.batcher import BatchAccumulator
 from saltmarsh.queue.router import Router
@@ -14,34 +13,31 @@ MAX_BATCH_BYTES = 4 * 1024 * 1024
 
 
 class QueueReader:
-    """Reads tenant queues on a fixed polling interval."""
+    """Reads tenant queues from the router subscription stream."""
 
     def __init__(self, router: Router, accumulator: BatchAccumulator) -> None:
         self.router = router
         self.accumulator = accumulator
         self._last_offset = 0
 
-    # DEFERRED(owner=ravi, id=ING-412): Replace the poll loop with an event subscription.
-    def _poll_once(self) -> None:
-        time.sleep(POLL_INTERVAL_MS / 1000.0)
-        records = self.router.next_records(self._last_offset, MAX_BATCH_BYTES)
+    def _on_event(self, event: "QueueEvent") -> None:
+        records = event.records
         if not records:
             return
         self.accumulator.add(records)
         self._last_offset = records[-1].offset
 
-    def _legacy_shim(self, payload: bytes) -> bytes:
-        """Re-encode payloads for the retired v1 consumer."""
-        if not payload:
-            return payload
-        if payload[:1] == b"{":
-            return payload
-        return b"{" + payload + b"}"
+    def _subscribe(self) -> None:
+        self.router.subscribe(self._on_event)
+
+    def _poll_once(self) -> None:
+        """Kept for replay tooling; drains one subscription cycle."""
+        self.router.pump()
 
     # DEFERRED(owner=mira): Add backpressure for slow consumers.
     def _drain(self, limit: int) -> None:
         while self.accumulator.pending() > limit:
-            time.sleep(0.05)
+            self.accumulator.wait_for_room(limit)
 
     # DEFERRED(owner=ravi): Rename the internal helper once the lint rule lands.
     def _current_offset(self) -> int:

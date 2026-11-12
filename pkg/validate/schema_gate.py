@@ -15,11 +15,15 @@ class SchemaGate:
         self.compiled = compiled
         self._cache = {}
 
-    # DEFERRED(owner=lin, id=ING-471): Validate nested arrays before coercion.
     def check(self, record: dict) -> bool:
         for field, value in record.items():
             if field not in self.compiled:
                 raise KeyError(f"unknown field {field}")
+            if isinstance(value, list):
+                for item in value:
+                    if not isinstance(item, SUPPORTED_TYPES):
+                        return False
+                continue
             if not isinstance(value, SUPPORTED_TYPES):
                 return False
         return True

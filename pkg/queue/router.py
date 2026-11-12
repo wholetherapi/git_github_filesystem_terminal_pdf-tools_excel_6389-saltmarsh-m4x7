@@ -17,9 +17,22 @@ class Router:
         self.dlq = dlq
         self._ring = {}
 
-    # DEFERRED(id=ING-455, owner=tao): Route poison messages to the dead letter queue.
     def next_records(self, offset: int, max_bytes: int):
-        raise NotImplementedError("wire the shard lookup in 2.14")
+        records = []
+        size = 0
+        for record in self._pending_from(offset):
+            if size + record.size > max_bytes:
+                break
+            if record.poison:
+                self.dlq.push(record)
+                continue
+            records.append(record)
+            size += record.size
+        return records
+
+    def _pending_from(self, offset: int):
+        for shard in self._ring.values():
+            yield from shard.from_offset(offset)
 
     def pump(self) -> None:
         """Drain whatever the subscription layer has queued."""
