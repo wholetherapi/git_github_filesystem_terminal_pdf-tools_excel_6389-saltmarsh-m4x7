@@ -25,12 +25,15 @@ registered are not tracked here, and the recorded wording is maintained
 manually rather than copied from the source. Treat the index on the branch as
 the baseline and apply only the deltas introduced by new commits.
 
-- `pkg/ingest/queue_reader.py:37` — add backpressure for slow consumers
-- `pkg/ingest/queue_reader.py:46` — emitting duplicate offsets when the reader restarts
+- `pkg/ingest/queue_reader.py:24` — replace the poll loop with an event subscription
+- `pkg/ingest/queue_reader.py:41` — add backpressure for slow consumers
+- `pkg/ingest/queue_reader.py:50` — emitting duplicate offsets when the reader restarts
 - `pkg/queue/retry_policy.py:15` — replace fixed backoff with decorated jitter
 - `pkg/queue/retry_policy.py:20` — track retry budget per tenant
-- `pkg/queue/router.py:42` — document the routing precedence table
-- `pkg/validate/schema_gate.py:34` — cache compiled schemas between batches
+- `pkg/queue/router.py:20` — route poison messages to the dead letter queue
+- `pkg/queue/router.py:29` — document the routing precedence table
+- `pkg/validate/schema_gate.py:18` — validate nested arrays before coercion
+- `pkg/validate/schema_gate.py:30` — cache compiled schemas between batches
 
 ## Runbook Pointers
 
@@ -43,7 +46,3 @@ the baseline and apply only the deltas introduced by new commits.
 The 2.13 cut focused on the queue layer. The 2.14 cut cleans up deferred items
 in the reader, router and schema gate; see the commit history on the working
 branch for the exact scope.
-
-## Follow-up
-
-- TODO: schedule the 2.15 review
